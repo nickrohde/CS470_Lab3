@@ -45,6 +45,7 @@ class Bitset
 private:
 	int capacity;
 	int size;
+	int bitsPerRow;
 	char * set;
 
 	bool testBit(int i, int j);
@@ -62,10 +63,21 @@ public:
 
 	Bitset(string s_fileName); // builds a bitset from the data in the file named s_fileName
 
+	Bitset(Bitset &other);
+
 	~Bitset(void);
 
 	int operator()(int i, int j); // retrieves the bit located in the ith byte, at the offset j
 	int operator[](int i); // retrieves the ith bit in the set
+
+	int getBytes()
+	{
+		return capacity;
+	}
+	int getBits()
+	{
+		return size;
+	}
 
 	void setBit(int i, int val);
 	void setBit(int i, int j, int val);

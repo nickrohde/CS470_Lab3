@@ -1,6 +1,7 @@
 #include "Bitset.h"
-#include <string>
+#include <string.h>
 #include <fstream>
+#include <cmath>
 
 using namespace std;
 
@@ -10,7 +11,8 @@ Bitset::Bitset(int size)
 	{
 		throw new invalid_argument("Cannot construct bitset of size 0.");
 	} // end if
-
+	
+	bitsPerRow = sqrt(size);
 	capacity = bitsToBytes(size);
 	this->size = size;
 	set = new char[capacity];
@@ -30,9 +32,10 @@ Bitset::Bitset(std::string s_fileName)
 
 	ifstream file(s_fileName.c_str());
 
-	capacity = bitsToBytes(temp);
+	capacity = temp;
 	set = new char[capacity];
-	size = size;
+	size = temp * __BYTEOFFSET;
+	bitsPerRow = sqrt(size);
 
 	if (file.is_open() && !file.bad())
 	{
@@ -41,15 +44,7 @@ Bitset::Bitset(std::string s_fileName)
 
 		while (file >> c && counter < size)
 		{
-			if (c)
-			{
-				setBit(counter, 1);
-			} // end if
-			else
-			{
-				setBit(counter, 0);
-			} // end else
-
+			set[counter] = c;
 			counter++;
 		} // end while
 	} // end if
@@ -92,6 +87,20 @@ Bitset::Bitset(char ** matrix, int rows, int cols) : Bitset(rows*cols)
 } // end Constructor(char**, int, int)                                 
 
 
+Bitset::Bitset(Bitset &other)
+{
+	size = other.size;
+	capacity = other.capacity;
+	set = new char[capacity];
+	bitsPerRow = other.bitsPerRow;
+	
+	for(int i = 0; i < capacity; i++)
+	{
+		set[i] = other.set[i];
+	}
+}
+
+
 Bitset::~Bitset(void)
 {
 	delete[] set;
@@ -100,7 +109,10 @@ Bitset::~Bitset(void)
 
 int Bitset::operator()(int i, int j)
 {
-	if (testBit(i, j))
+	int row = bitsPerRow * i;
+	int _byte = bitsToBytes(row);
+	
+	if (testBit(_byte, j))
 	{
 		return 1;
 	} // end if
