@@ -54,14 +54,14 @@ private:
 
 	int bitsToBytes(int bits);
 
+	void setBit(int i, int j, int val);
+
 public:
 	Bitset(char ** ca_matrix, int i_size); // square matrix of size size
 
-	Bitset(char ** ca_matrix, int i_rows, int i_cols); // matrix with the given # of rows and columns in matrix
-
 	Bitset(int i_size); // size is the number of bits to store
 
-	Bitset(string s_fileName); // builds a bitset from the data in the file named s_fileName
+	Bitset(string s_fileName, int size); // builds a bitset from the data in the file named s_fileName
 
 	Bitset(Bitset &other);
 
@@ -74,31 +74,27 @@ public:
 	{
 		return capacity;
 	}
+
 	int getBits()
 	{
 		return size;
 	}
 
+	int getBitsPerRow()
+	{
+		return bitsPerRow;
+	}
+
+	bool allOnes(void);
+	bool allZeroes(void);
+
 	void setBit(int i, int val);
-	void setBit(int i, int j, int val);
+	void setBit(int i, int j, bool b_val);
 
 	void resize(int i_size); // resizes the bitset to the new size
 
 	void writeSetToFile(string s_fileName); // writes this bitset to the file named s_fileName
 
-	//friend ofstream& operator<<(ofstream&, Bitset&); // stream insertion operator for outputting bitset
+	friend ostream& operator<<(ostream&, Bitset*); // stream insertion operator for outputting bitset
 }; // end Class Bitset
-
-
-
-
-
-
-
-
-
 #endif // !__BITSET_T
-
-
-
-

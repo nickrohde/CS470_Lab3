@@ -21,20 +21,20 @@ Bitset::Bitset(int size)
 } // end Constructor(int)                    
 
 
-Bitset::Bitset(std::string s_fileName)
+Bitset::Bitset(std::string s_fileName, int size)
 {
 	int temp = countCharsInFile(s_fileName);
 
 	if (temp <= 0)
 	{
-		throw new invalid_argument("Cannot construct bitset of size 0.");
+		throw new invalid_argument("Size must be >0.");
 	} // end if
 
 	ifstream file(s_fileName.c_str());
 
 	capacity = temp;
 	set = new char[capacity];
-	size = temp * __BYTEOFFSET;
+	this->size = size;
 	bitsPerRow = sqrt(size);
 
 	if (file.is_open() && !file.bad())
@@ -50,25 +50,21 @@ Bitset::Bitset(std::string s_fileName)
 	} // end if
 
 	file.close();
-
 }// end Constructor(string, int)
 
 
-Bitset::Bitset(char ** matrix, int size) : Bitset(matrix, size, size) {}
-
-
-Bitset::Bitset(char ** matrix, int rows, int cols) : Bitset(rows*cols)
+Bitset::Bitset(char ** matrix, int size) : Bitset(size*size)
 {
-	if (rows <= 0 || cols <= 0)
+	if (size <= 0)
 	{
 		throw new invalid_argument("Invalid size received.");
 	} // end if
 
 	int counter = 0;
 
-	for (int i = 0; i < rows; i++)
+	for (int i = 0; i < size; i++)
 	{
-		for (int j = 0; j < cols; j++)
+		for (int j = 0; j < size; j++)
 		{
 			char temp = matrix[i][j];
 
@@ -84,7 +80,7 @@ Bitset::Bitset(char ** matrix, int rows, int cols) : Bitset(rows*cols)
 			counter++;
 		} // end for j
 	} // end for i
-} // end Constructor(char**, int, int)                                 
+} // end Constructor(char**,int)                              
 
 
 Bitset::Bitset(Bitset &other)
@@ -109,22 +105,30 @@ Bitset::~Bitset(void)
 
 int Bitset::operator()(int i, int j)
 {
-	int row = bitsPerRow * i;
-	int _byte = bitsToBytes(row);
+	int _byte    = (i * bitsPerRow) / __BYTEOFFSET;
+	int rowStart = (i * bitsPerRow) % __BYTEOFFSET;
+	int _bit = rowStart + j;
+
+	// in case the bit is actually in the next bytes in the row
+	while (_bit > 7)
+	{
+		_byte++;
+		_bit -= 8;
+	} // end
 	
-	if (testBit(_byte, j))
+	if (testBit(_byte, _bit))
 	{
 		return 1;
 	} // end if
 
 	return 0;
-} // end operator()
+} // end operator()                                                 
 
 
 int Bitset::operator[](int i)
 {
 	int byte = i / __BYTEOFFSET;
-	int bit = i % __BYTEOFFSET;
+	int bit  = i % __BYTEOFFSET;
 
 	if (testBit(byte, bit))
 	{
@@ -133,6 +137,57 @@ int Bitset::operator[](int i)
 
 	return 0;
 } // end operator[]
+
+
+void Bitset::setBit(int i, int j, bool b_val)
+{
+	int _byte = (i * bitsPerRow) / __BYTEOFFSET;    // the starting byte of this row 
+	int rowStart = (i * bitsPerRow) % __BYTEOFFSET; // the starting bit of this row
+	int _bit = rowStart + j;						// the actual bit this coordinate pair maps to
+
+	// adjust for multiple bytes per row
+	while (_bit > 7)
+	{
+		_byte++;
+		_bit -= 8;
+	} // end
+
+	setBit(_byte, _bit, (b_val ? 1 : 0));
+} // end method setBit(int,int,bool)                                                               
+
+
+bool Bitset::allOnes(void)
+{
+	for (int i = 0; i < capacity; i++)
+	{
+		for (int j = 0; j < 8 && (i*__BYTEOFFSET + j < size); j++)
+		{
+			if (!testBit(i, j))
+			{
+				return false;
+			} // end if
+		} // end for j
+	} // end for i
+
+	return true;
+} // end method all1
+
+
+bool Bitset::allZeroes(void)
+{
+	for (int i = 0; i < capacity; i++)
+	{
+		for (int j = 0; j < 8 && (i*__BYTEOFFSET + j < size); j++)
+		{
+			if (testBit(i, j))
+			{
+				return false;
+			} // end if
+		} // end for j
+	} // end for i
+
+	return true;
+} // end method all0
 
 
 void Bitset::setBit(int i, int i_val)
@@ -260,11 +315,11 @@ void Bitset::resize(int i_size)
 void Bitset::writeSetToFile(string s_fileName)
 {
 	remove(s_fileName.c_str());
-	ofstream file(s_fileName.c_str(), ios::app | ios::out);
+	ofstream file(s_fileName.c_str(), ios::app | ios::binary);
 
 	if (file.is_open() && !file.bad())
 	{
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < capacity; i++)
 		{
 			char temp = set[i];
 
@@ -282,7 +337,7 @@ bool Bitset::testBit(int i, int j)
 		error += " Expected: 0-" + (capacity-1);
 		throw new invalid_argument(error);
 	} // end if
-	if ((i*__BYTEOFFSET + j > size))
+	if ((i*__BYTEOFFSET + j >= size))
 	{
 		string error = "Not a valid bit. Received: " + (i*__BYTEOFFSET + j);
 		error += " Expected: 0-" + (size-1);
@@ -319,18 +374,8 @@ bool Bitset::testBit(int i, int j)
 
 int Bitset::countCharsInFile(string s_fileName)
 {
-	ifstream file(s_fileName.c_str(), ios::in);
-
-	int counter = 0;
-
-	char c = 0;
-
-	while (file >> c)
-	{
-		counter++;
-	} // end while
-
-	return counter;
+	ifstream file(s_fileName, ios::binary | ios::ate);
+	return file.tellg();
 } // end method countCharsInFile
 
 
@@ -350,3 +395,19 @@ int Bitset::bitsToBytes(int bits)
 
 	return result;
 } // end method bitsToBytes                                    
+
+
+ostream& operator<<(ostream& stream, Bitset* set)
+{
+	for (int i = 0; i < set->bitsPerRow; i++)
+	{
+		for (int j = 0; j < set->bitsPerRow; j++)
+		{
+			stream << (*set)(i, j) << " " ;
+		} // end for
+
+		stream << endl;
+	} // end for
+
+	return stream;
+} // end operator<<
