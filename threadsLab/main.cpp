@@ -2,9 +2,10 @@
 #include <iostream>
 #include <fstream>
 #include <random>
-#include <time.h>
+#include <sys/time.h>
 //#include <pthread.h>
 #include <mutex>
+#include <string.h>
 #include "Bitset.h"
 
 
@@ -32,7 +33,9 @@ void runProblem2(const int, const int);
 // Globals:
 const string s_FILENAME  = "stuff.bin";
 const string s_CHECKFILE = "check.bin";
+int i_MAX_UNCHANGED;
 int i_unchanged;
+time_t limit = 300000;
 mutex mtx;
 int i_num;
 
@@ -42,7 +45,7 @@ int main(int argc, char **argv)
 	// Constants:
 	const int i_MAX_N       = 10000;
 	const int i_MAX_THREADS = 100;
-	const int i_MAX_CHOICE  = 3;
+	const int i_MAX_CHOICE  = 6;
 	const int i_MIN_CHOICE  = 1;
 	const int i_MIN_THREADS = 1;
 	const int i_MIN_N       = 2;
@@ -55,7 +58,11 @@ int main(int argc, char **argv)
 
 	string s_N_MSG    = "Please enter a positive integer for the size of matrix to use (2 <= n <= 10000): ";
 	string s_M_MSG    = "Please enter a positive integer for the number of threads to use (1 <= m <= 100): ";
-	string s_CHOICE   = "Enter your choice (1, 2 or 3): ";
+	string s_CHOICE   = "Enter your choice (1, 2, 3, 4, 5 or 6): ";
+	string s_MAX_UNCHANGED = "Enter a positive integer for the maximum tries before stopping: ";
+	string s_TIMELIMIT = "Enter new timelimit for finding solution (in ms): ";
+	
+	i_MAX_UNCHANGED = 100;
 	
 	// Input check
 	if(argc > 0)
@@ -74,13 +81,14 @@ int main(int argc, char **argv)
 	
 	srand(unsigned(time(NULL)));
 	
+	i_num = i_size;
 	
 	for(;;)
 	{
 		presentMenu();
 		i_choice = askUserForInteger(s_CHOICE, i_MIN_CHOICE, i_MAX_CHOICE);
 		
-		if(i_choice == 3)
+		if(i_choice == 6)
 		{
 			cout << endl << "Bye." << endl;
 			break;
@@ -89,7 +97,6 @@ int main(int argc, char **argv)
 		{
 			i_unchanged = 0;
 			i_numThreads = askUserForInteger(s_M_MSG, i_MIN_THREADS, i_MAX_THREADS);
-			i_num = i_size;
 			runProblem1(i_size, i_numThreads);
 		} // end elif
 		else if(i_choice == 2)
@@ -98,9 +105,24 @@ int main(int argc, char **argv)
 			i_numThreads = askUserForInteger(s_M_MSG, i_MIN_THREADS, i_MAX_THREADS);
 			runProblem2(i_size, i_numThreads);
 		} // end elif
+		else if(i_choice == 3)
+		{
+			i_size = askUserForInteger(s_N_MSG,i_MIN_N, i_MAX_N);
+			i_num = i_size;
+		} // end elif
+		else if(i_choice == 4)
+		{
+			i_MAX_UNCHANGED = askUserForInteger(s_MAX_UNCHANGED, 1, INT32_MAX);
+			cout << "If the file does not change for " << i_MAX_UNCHANGED << " iterations, the program will stop." << endl;
+		} // end elif
+		else if(i_choice == 5)
+		{
+			limit = (unsigned)askUserForInteger(s_TIMELIMIT, 3000, INT32_MAX);
+			cout << "If no solution was found after " << limit << " ms, the program will stop." << endl;
+		}
 		else
 		{
-			printError("You must chose either 1, 2 or 3.", i_choice);
+			printError("You must chose either 1, 2, 3, 4, 5 or 6.", i_choice);
 		} // end else
 	} // end for
 	
@@ -116,9 +138,16 @@ void runProblem1(const int i_N, const int i_M)
 	
 	Bitset* set = new Bitset(s_FILENAME, i_num*i_num);
 
+	struct timeval tv;
+	
+	time_t start;
+	time_t end, intermediate;
+	
+	gettimeofday(&tv, NULL);
+    start = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+	
 	do
 	{
-		/*
 		pthread_t threads[i_M];
 		
 		for(int i = 0; i < i_M; i++)
@@ -129,17 +158,28 @@ void runProblem1(const int i_N, const int i_M)
 		{
 			pthread_join(threads[i], NULL);
 		} // end for
-		*/
-
-		threadStart((void*)set);
-
-		if (i_unchanged == 100)
+		
+		gettimeofday(&tv,NULL);
+		
+		intermediate = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+		
+		if (i_unchanged == i_MAX_UNCHANGED)
 		{
-			cout << "The file has not changed in 100 iterations. Stopping." << endl;
+			cout << "The file has not changed in " << i_MAX_UNCHANGED <<" iterations. Stopping." << endl;
 			break;
 		} // end if
-
+		if((intermediate - start) >= limit)
+		{
+			cout << "No solution has been found after " << intermediate-start <<" ms. Stopping." << endl;
+			break;
+		} // end if
 	} while(!isProblem1Done());
+	
+	gettimeofday(&tv,NULL);
+	
+	end = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+	
+	cout << endl << "This run took " << end - start << " ms." << endl;
 	
 	delete set;
 } // end method runProblem1
@@ -327,7 +367,7 @@ void runProblem2(const int i_N, const int i_M)
 void printError(string s_msg, const int i_choice)
 {
 	cout << "Error. Your input of \"" << i_choice << "\" did not work." << endl;
-	cout << s_msg << endl;
+	cout << s_msg << endl << endl;
 } // end method printError
 
 
@@ -336,7 +376,10 @@ void presentMenu(void)
 	cout << endl;
 	cout << "1) Run problem 1" << endl;
 	cout << "2) Run problem 2" << endl;
-	cout << "3) Exit" << endl;
+	cout << "3) Pick new N value (current: " << i_num << ")" << endl;
+	cout << "4) Pick new stopping value (current: "<< i_MAX_UNCHANGED << ")" << endl;
+	cout << "5) Pick new time limit for problem runs (current: " << limit << " ms)"<< endl;
+	cout << "6) Exit" << endl << endl;
 } // end method presentMenu
 
 
@@ -438,7 +481,8 @@ int askUserForInteger(string s_MSG, const int i_MIN, const int i_MAX)
 		} // end if
 		else
 		{
-			cout << "Invalid input. Try again." << endl;
+			cout << endl << "Invalid input. Try again." << endl;
+			cout << "Input must be in the range [" << i_MIN << "," << i_MAX << "]." << endl << endl; 
 			cin.clear();
 		} // end if
 	} // end for

@@ -93,8 +93,8 @@ Bitset::Bitset(Bitset &other)
 	for(int i = 0; i < capacity; i++)
 	{
 		set[i] = other.set[i];
-	}
-}
+	} // end for
+} // end Copy Constructor
 
 
 Bitset::~Bitset(void)
