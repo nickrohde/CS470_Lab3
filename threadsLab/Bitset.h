@@ -57,8 +57,6 @@ private:
 	void setBit(int i, int j, int val);
 
 public:
-	Bitset(char ** ca_matrix, int i_size); // square matrix of size size
-
 	Bitset(int i_size); // size is the number of bits to store
 
 	Bitset(string s_fileName, int size); // builds a bitset from the data in the file named s_fileName
@@ -85,8 +83,7 @@ public:
 		return bitsPerRow;
 	}
 
-	bool allOnes(void);
-	bool allZeroes(void);
+	bool allSame(void);
 
 	void setBit(int i, int val);
 	void setBit(int i, int j, bool b_val);

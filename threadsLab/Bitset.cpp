@@ -42,7 +42,7 @@ Bitset::Bitset(std::string s_fileName, int size)
 		char c;
 		int counter = 0;
 
-		while (file >> c && counter < size)
+		while (file >> c && counter < capacity)
 		{
 			set[counter] = c;
 			counter++;
@@ -50,37 +50,7 @@ Bitset::Bitset(std::string s_fileName, int size)
 	} // end if
 
 	file.close();
-}// end Constructor(string, int)
-
-
-Bitset::Bitset(char ** matrix, int size) : Bitset(size*size)
-{
-	if (size <= 0)
-	{
-		throw new invalid_argument("Invalid size received.");
-	} // end if
-
-	int counter = 0;
-
-	for (int i = 0; i < size; i++)
-	{
-		for (int j = 0; j < size; j++)
-		{
-			char temp = matrix[i][j];
-
-			if (temp)
-			{
-				setBit(counter, 1);
-			} // end if
-			else
-			{
-				setBit(counter, 0);
-			} // end else
-
-			counter++;
-		} // end for j
-	} // end for i
-} // end Constructor(char**,int)                              
+}// end Constructor(string, int)                     
 
 
 Bitset::Bitset(Bitset &other)
@@ -156,38 +126,20 @@ void Bitset::setBit(int i, int j, bool b_val)
 } // end method setBit(int,int,bool)                                                               
 
 
-bool Bitset::allOnes(void)
+bool Bitset::allSame(void)
 {
-	for (int i = 0; i < capacity; i++)
+	int temp = (testBit(0, 0) ? 1 : 0);
+
+	for(int i = 0; i < size; i++)
 	{
-		for (int j = 0; j < 8 && (i*__BYTEOFFSET + j < size); j++)
+		if (this->operator[](i) != temp)
 		{
-			if (!testBit(i, j))
-			{
-				return false;
-			} // end if
-		} // end for j
-	} // end for i
+			return false;
+		} // end if
+	} // end for
 
 	return true;
-} // end method all1
-
-
-bool Bitset::allZeroes(void)
-{
-	for (int i = 0; i < capacity; i++)
-	{
-		for (int j = 0; j < 8 && (i*__BYTEOFFSET + j < size); j++)
-		{
-			if (testBit(i, j))
-			{
-				return false;
-			} // end if
-		} // end for j
-	} // end for i
-
-	return true;
-} // end method all0
+} // end method allSame
 
 
 void Bitset::setBit(int i, int i_val)
